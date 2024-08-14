@@ -1,0 +1,77 @@
+// pages/index.js
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+import styles from '../styles/Home.module.css';
+
+export default function Home() {
+  const [news, setNews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [summarizing, setSummarizing] = useState(false);
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        const response = await axios.get('/api/news');
+        setNews(response.data);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching news:", error);
+        setLoading(false);
+      }
+    };
+
+    fetchNews();
+  }, []);
+
+  const handleSummarize = async (text, index) => {
+    setSummarizing(true);
+    try {
+      const response = await axios.post('/api/summarize', { text });
+      const newSummary = response.data.summary;
+      setNews((prevNews) => {
+        const updatedNews = [...prevNews];
+        updatedNews[index].summary = newSummary;
+        return updatedNews;
+      });
+    } catch (error) {
+      console.error("Error summarizing text:", error);
+    } finally {
+      setSummarizing(false);
+    }
+  };
+
+  if (loading) {
+    return <p>Loading...</p>;
+  }
+
+  return (
+    <div className={styles.container}>
+      <header className={styles.header}>
+        <h1 className={styles.title}>ShortCast</h1>
+      </header>
+      <nav className={styles.navbar}>
+        <button>Sort by Date</button>
+        <button>Sort by Source</button>
+        <button>Sort by Category</button>
+      </nav>
+      <main className={styles.main}>
+        {news.map((item, index) => (
+          <div key={index} className={styles.newsCard}>
+            <img src={item.image} alt={item.headline} className={styles.newsImage} />
+            <h2 className={styles.newsHeadline}>{item.headline}</h2>
+            <p className={styles.newsSummary}>{item.summary}</p>
+            <a href="#" className={styles.readMore}>Read More</a>
+            <div className={styles.actions}>
+              <button className={styles.upvote}>Upvote</button>
+              <button className={styles.comment}>Comment</button>
+              <button className={styles.share}>Share</button>
+            </div>
+            <button onClick={() => handleSummarize(item.summary, index)} disabled={summarizing}>
+              {summarizing ? 'Summarizing...' : 'Summarize'}
+            </button>
+          </div>
+        ))}
+      </main>
+    </div>
+  );
+}
